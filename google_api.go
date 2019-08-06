@@ -32,7 +32,8 @@ var (
 	badStatusErr    = errors.New("bad status")
 )
 
-func newGoogleApi() *googleApi {
+// NewGoogleApi represent client for low-level requests to Google Photo Api.
+func NewGoogleApi() *googleApi {
 	return &googleApi{
 		getAlbumsURL:   "https://photoslibrary.googleapis.com/v1/albums",
 		searchPhotoURL: "https://photoslibrary.googleapis.com/v1/mediaItems:search",
@@ -76,14 +77,17 @@ func (g *googleApi) refreshAccessToken(clientID, clientSecret, refreshToken stri
 	if err := json.Unmarshal(body, &refreshResponse); err != nil {
 		return refreshResponse.AccessToken, err
 	}
-	logrus.Infoln("access token refreshed")
+	logrus.WithFields(logrus.Fields{
+		"expires": refreshResponse.ExpiresIn,
+	}).Infoln("access token refreshed")
+
 	return refreshResponse.AccessToken, nil
 }
 
-func (g *googleApi) getAlbumList(accessToken string) ([]GoogleAlbum, error) {
+func (g *googleApi) getAlbumList(accessToken string) ([]*GoogleAlbum, error) {
 	var (
 		googleResponse googleAlbumResponse
-		albums         []GoogleAlbum
+		albums         []*GoogleAlbum
 	)
 
 	req, err := http.NewRequest("GET", g.getAlbumsURL, nil)
@@ -121,10 +125,10 @@ func (g *googleApi) getAlbumList(accessToken string) ([]GoogleAlbum, error) {
 	return googleResponse.GoogleAlbums, nil
 }
 
-func (g *googleApi) searchPhotos(accessToken, albumID string) ([]GooglePhoto, error) {
+func (g *googleApi) searchPhotos(accessToken, albumID string) ([]*GooglePhoto, error) {
 	var (
 		googleResponse googlePhotoResponse
-		photos         []GooglePhoto
+		photos         []*GooglePhoto
 	)
 
 	form := url.Values{}
@@ -164,5 +168,6 @@ func (g *googleApi) searchPhotos(accessToken, albumID string) ([]GooglePhoto, er
 	if err := json.Unmarshal(body, &googleResponse); err != nil {
 		return photos, err
 	}
+	logrus.WithField("album", albumID).Debugln("search photo via api")
 	return googleResponse.GooglePhotos, err
 }

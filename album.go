@@ -1,7 +1,7 @@
 package gphoto
 
 type googleAlbumResponse struct {
-	GoogleAlbums []GoogleAlbum `json:"albums"`
+	GoogleAlbums []*GoogleAlbum `json:"albums"`
 }
 
 // GoogleAlbum represent google album structure received from api.

@@ -3,20 +3,31 @@ package gphoto
 import (
 	"errors"
 	"github.com/sirupsen/logrus"
+	bolt "go.etcd.io/bbolt"
+	"net/http"
 )
 
-type Api interface {
+type api interface {
 	refreshAccessToken(clientID, clientSecret, refreshToken string) (string, error)
-	getAlbumList(accessToken string) ([]GoogleAlbum, error)
-	searchPhotos(accessToken, albumID string) ([]GooglePhoto, error)
+	getAlbumList(accessToken string) ([]*GoogleAlbum, error)
+	searchPhotos(accessToken, albumID string) ([]*GooglePhoto, error)
 }
 
-type client struct {
+type repository interface {
+	savePhotos(album string, photo []*GooglePhoto) error
+	listPhotos(album string) ([]*GooglePhoto, error)
+	truncateAlbum(album string) error
+	close() error
+}
+
+// Client struct.
+type Client struct {
 	clientID     string
 	clientSecret string
 	accessToken  string
 	refreshToken string
-	api          Api
+	api          api
+	repo         repository
 }
 
 // Some api errors.
@@ -24,21 +35,29 @@ var (
 	refreshTokenErr = errors.New("can`t refresh token")
 	searchPhotosErr = errors.New("search photos error")
 	getAlbumErr     = errors.New("get album error")
+	truncateErr     = errors.New("truncate album error")
+	saveErr         = errors.New("save album error")
 )
 
-// NewGoogleClient create google photo api client.
-func NewGoogleClient(clientID, clientSecret, refreshToken string) *client {
-	gAPI := newGoogleApi()
-	return &client{
+// NewGoogleClient create google photo api Client.
+func NewGoogleClient(clientID, clientSecret, refreshToken string) *Client {
+	db, err := initDB()
+	if err != nil {
+		logrus.WithError(err).Fatalln("boltDB init error")
+	}
+
+	repo := NewBoltRepository(db)
+	return &Client{
 		clientID:     clientID,
 		clientSecret: clientSecret,
 		refreshToken: refreshToken,
-		api:          gAPI,
+		api:          NewGoogleApi(),
+		repo:         repo,
 	}
 }
 
 // GetAlbumList fetch all photo albums.
-func (c *client) GetAlbumList() ([]GoogleAlbum, error) {
+func (c *Client) GetAlbumList() ([]*GoogleAlbum, error) {
 	albums, err := c.api.getAlbumList(c.accessToken)
 	if err == unauthorizedErr {
 		c.accessToken, err = c.api.refreshAccessToken(c.clientID, c.clientSecret, c.refreshToken)
@@ -49,6 +68,7 @@ func (c *client) GetAlbumList() ([]GoogleAlbum, error) {
 		albums, err = c.api.getAlbumList(c.accessToken)
 		if err != nil {
 			logrus.WithError(err).Errorln(getAlbumErr)
+			return albums, getAlbumErr
 		}
 	} else if err != nil {
 		logrus.WithError(err).Errorln(getAlbumErr)
@@ -57,20 +77,71 @@ func (c *client) GetAlbumList() ([]GoogleAlbum, error) {
 }
 
 // GetPhotoByAlbum fetch photos of a specific album.
-func (c *client) GetPhotoByAlbum(albumID string) ([]GooglePhoto, error) {
-	photos, err := c.api.searchPhotos(c.accessToken, albumID)
-	if err == unauthorizedErr {
-		c.accessToken, err = c.api.refreshAccessToken(c.clientID, c.clientSecret, c.refreshToken)
-		if err != nil {
-			logrus.WithError(err).Error(refreshTokenErr)
-			return photos, refreshTokenErr
-		}
+func (c *Client) GetPhotoByAlbum(albumID string) ([]*GooglePhoto, error) {
+	var (
+		photos []*GooglePhoto
+		err    error
+	)
+
+	defer func() {
+		_ = c.repo.close()
+	}()
+
+	photos, err = c.repo.listPhotos(albumID)
+	if err == nil && urlIsValid(photos[0].BaseURL) {
+		return photos, err
+	} else {
 		photos, err = c.api.searchPhotos(c.accessToken, albumID)
-		if err != nil {
+		if err == unauthorizedErr {
+			c.accessToken, err = c.api.refreshAccessToken(c.clientID, c.clientSecret, c.refreshToken)
+			if err != nil {
+				logrus.WithError(err).Error(refreshTokenErr)
+				return photos, refreshTokenErr
+			}
+			photos, err = c.api.searchPhotos(c.accessToken, albumID)
+			if err != nil {
+				logrus.WithError(err).Errorln(searchPhotosErr)
+				return photos, searchPhotosErr
+			}
+		} else if err != nil {
 			logrus.WithError(err).Errorln(searchPhotosErr)
+			return photos, searchPhotosErr
 		}
-	} else if err != nil {
-		logrus.WithError(err).Errorln(searchPhotosErr)
+
+		if err = c.repo.truncateAlbum(albumID); err != nil {
+			logrus.WithError(err).Error(truncateErr)
+			return photos, truncateErr
+		}
+
+		if len(photos) > 0 {
+			if err = c.repo.savePhotos(albumID, photos); err != nil {
+				logrus.WithError(err).Errorln(saveErr)
+				return photos, saveErr
+			}
+		}
 	}
+
 	return photos, err
+}
+
+// initDB init Bolt database connection.
+func initDB() (*bolt.DB, error) {
+	return bolt.Open(googlePhotoDB, 0600, nil)
+}
+
+// urlIsValid check the link to the photo still expired.
+func urlIsValid(url string) bool {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return false
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return false
+	}
+	defer func() {
+		_ = res.Body.Close()
+	}()
+
+	return res.StatusCode == http.StatusOK
 }

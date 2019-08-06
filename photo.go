@@ -3,7 +3,7 @@ package gphoto
 import "time"
 
 type googlePhotoResponse struct {
-	GooglePhotos []GooglePhoto `json:"mediaItems"`
+	GooglePhotos []*GooglePhoto `json:"mediaItems"`
 }
 
 // GooglePhoto represent google album structure received from api.
