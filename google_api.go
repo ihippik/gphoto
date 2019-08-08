@@ -13,6 +13,7 @@ import (
 )
 
 type googleApi struct {
+	client         *http.Client
 	getAlbumsURL   string
 	searchPhotoURL string
 	getTokenURL    string
@@ -58,7 +59,7 @@ func (g *googleApi) refreshAccessToken(clientID, clientSecret, refreshToken stri
 
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Add("cache-control", "no-cache")
-	res, err := http.DefaultClient.Do(req)
+	res, err := g.client.Do(req)
 	if err != nil {
 		return refreshResponse.AccessToken, err
 	}
@@ -98,7 +99,7 @@ func (g *googleApi) getAlbumList(accessToken string) ([]*GoogleAlbum, error) {
 	req.Header.Add("Authorization", auth)
 	req.Header.Add("cache-control", "no-cache")
 
-	res, err := http.DefaultClient.Do(req)
+	res, err := g.client.Do(req)
 	if err != nil {
 		return albums, err
 	}
@@ -106,14 +107,14 @@ func (g *googleApi) getAlbumList(accessToken string) ([]*GoogleAlbum, error) {
 		_ = res.Body.Close()
 	}()
 
-	if res.StatusCode != http.StatusOK {
-		switch res.StatusCode {
-		case 401:
-			return albums, unauthorizedErr
-		default:
-			return albums, errors.New(res.Status)
-		}
+	switch res.StatusCode {
+	case http.StatusOK:
+	case http.StatusUnauthorized:
+		return albums, unauthorizedErr
+	default:
+		return albums, errors.New(res.Status)
 	}
+
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return albums, err
@@ -152,14 +153,14 @@ func (g *googleApi) searchPhotos(accessToken, albumID string) ([]*GooglePhoto, e
 		_ = res.Body.Close()
 	}()
 
-	if res.StatusCode != http.StatusOK {
-		switch res.StatusCode {
-		case 401:
-			return photos, unauthorizedErr
-		default:
-			return photos, errors.New(res.Status)
-		}
+	switch res.StatusCode {
+	case http.StatusOK:
+	case http.StatusUnauthorized:
+		return photos, unauthorizedErr
+	default:
+		return photos, errors.New(res.Status)
 	}
+
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return photos, err
