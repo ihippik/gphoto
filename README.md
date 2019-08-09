@@ -15,3 +15,6 @@ Photos received from Google Api are cached in the database (bolt db by default),
     
     albums, err := client.GetAlbumList()
     photos, err:= client.GetPhotoByAlbum(albumID)
+    
+    
+[![Build Status](https://travis-ci.com/ihippik/gphoto.svg?branch=master)](https://travis-ci.com/ihippik/gphoto)
