@@ -18,3 +18,4 @@ Photos received from Google Api are cached in the database (bolt db by default),
     
     
 [![Build Status](https://travis-ci.com/ihippik/gphoto.svg?branch=master)](https://travis-ci.com/ihippik/gphoto)
+[![codecov](https://codecov.io/gh/ihippik/gphoto/branch/master/graph/badge.svg)](https://codecov.io/gh/ihippik/gphoto)
