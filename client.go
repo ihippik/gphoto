@@ -90,8 +90,11 @@ func (c *Client) GetPhotoByAlbum(albumID string) ([]*GooglePhoto, error) {
 	}()
 
 	photos, err = c.repo.listPhotos(albumID)
-	uiv := c.api.urlIsValid(photos[0].BaseURL)
-	if err == nil && uiv {
+	if len(photos) == 0 {
+		return photos, nil
+	}
+
+	if urlIsValid := c.api.urlIsValid(photos[0].BaseURL); err == nil && urlIsValid {
 		return photos, err
 	} else {
 		photos, err = c.api.searchPhotos(c.accessToken, albumID)
