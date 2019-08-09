@@ -42,7 +42,7 @@ var (
 
 // NewGoogleClient create google photo api Client.
 func NewGoogleClient(clientID, clientSecret, refreshToken string) *Client {
-	db, err := initDB()
+	db, err := initDB(googlePhotoDB)
 	if err != nil {
 		logrus.WithError(err).Fatalln("boltDB init error")
 	}
@@ -128,6 +128,6 @@ func (c *Client) GetPhotoByAlbum(albumID string) ([]*GooglePhoto, error) {
 }
 
 // initDB init Bolt database connection.
-func initDB() (*bolt.DB, error) {
-	return bolt.Open(googlePhotoDB, 0600, nil)
+func initDB(dbName string) (*bolt.DB, error) {
+	return bolt.Open(dbName, 0600, nil)
 }
