@@ -17,12 +17,13 @@ const (
 
 var albumNotExists = errors.New("album not exists")
 
-// BoltRepository is a boltdb repository implementaion.
+// BoltRepository is a bolt db repository implementation.
 type BoltRepository struct {
 	DB *bbolt.DB
 }
 
 func (r BoltRepository) close() error {
+	logrus.Debugln("bolt db connection closed")
 	return r.DB.Close()
 }
 
@@ -54,7 +55,7 @@ func (r BoltRepository) savePhotos(album string, photos []*GooglePhoto) error {
 			return err
 		}
 	}
-	logrus.WithField("album", album).Debugln("save album photo")
+	logrus.WithFields(logrus.Fields{"album": album, "count": len(photos)}).Debugln("save album photo")
 	return tx.Commit()
 }
 
@@ -88,7 +89,7 @@ func (r BoltRepository) listPhotos(album string) ([]*GooglePhoto, error) {
 		items = append(items, &photo)
 	}
 	err = tx.Commit()
-	logrus.WithField("album", album).Debugln("list album photo from repo")
+	logrus.WithFields(logrus.Fields{"album": album, "count": len(items)}).Debugln("get album photo from repo")
 	return items, err
 }
 

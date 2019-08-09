@@ -85,13 +85,9 @@ func (c *Client) GetPhotoByAlbum(albumID string) ([]*GooglePhoto, error) {
 		err    error
 	)
 
-	defer func() {
-		_ = c.repo.close()
-	}()
-
 	photos, err = c.repo.listPhotos(albumID)
-
 	urlIsValid := len(photos) > 0 && c.api.urlIsValid(photos[0].BaseURL)
+	logrus.WithField("isValid", urlIsValid).Debugln("first photo url is valid")
 	if err == nil && urlIsValid {
 		return photos, nil
 	} else {
@@ -130,5 +126,6 @@ func (c *Client) GetPhotoByAlbum(albumID string) ([]*GooglePhoto, error) {
 
 // initDB init Bolt database connection.
 func initDB(dbName string) (*bolt.DB, error) {
+	logrus.Debugln("bolt db connection open")
 	return bolt.Open(dbName, 0600, nil)
 }
