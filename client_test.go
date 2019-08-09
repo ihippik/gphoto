@@ -235,6 +235,7 @@ func TestClient_GetPhotoByAlbum(t *testing.T) {
 			ProductURL: "http://photo.com",
 		},
 	}
+	emptyList := []*GooglePhoto{}
 
 	repoMock.On("close").Return(nil)
 
@@ -246,6 +247,20 @@ func TestClient_GetPhotoByAlbum(t *testing.T) {
 		want    []*GooglePhoto
 		wantErr error
 	}{
+		{
+			name: "get photos empty",
+			fields: fields{
+				clientID:     "CLIENT_ID",
+				clientSecret: "SECRET_ID",
+				refreshToken: "TOKEN",
+				accessToken:  "ACCESS_TOKEN",
+			},
+			args: args{albumID: "asdef"},
+			want: emptyList,
+			setup: func() {
+				setupListPhotos(emptyList, nil)
+			},
+		},
 		{
 			name: "get photos success",
 			fields: fields{
@@ -273,7 +288,7 @@ func TestClient_GetPhotoByAlbum(t *testing.T) {
 			want: list,
 			setup: func() {
 				setupListPhotos(list, someErr)
-				setupUrlIsValid(false)
+				setupUrlIsValid(true)
 				setupSearchPhotos(list, nil)
 				setupTruncateAlbum(nil)
 				setupSavePhotos(nil)
