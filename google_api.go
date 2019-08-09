@@ -174,7 +174,11 @@ func (g *googleApi) searchPhotos(accessToken, albumID string) ([]*GooglePhoto, e
 	if err := json.Unmarshal(body, &googleResponse); err != nil {
 		return photos, err
 	}
-	logrus.WithField("album", albumID).Debugln("search photo via api")
+
+	logrus.WithFields(logrus.Fields{
+		"album": albumID,
+		"count": len(googleResponse.GooglePhotos),
+	}).Debugln("get album photo from api")
 	return googleResponse.GooglePhotos, err
 }
 
