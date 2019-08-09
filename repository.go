@@ -61,10 +61,8 @@ func (r BoltRepository) savePhotos(album string, photos []*GooglePhoto) error {
 
 // listPhotos fetch photos from album boltdb bucket.
 func (r BoltRepository) listPhotos(album string) ([]*GooglePhoto, error) {
-	var (
-		items []*GooglePhoto
-		photo GooglePhoto
-	)
+	var items []*GooglePhoto
+
 	tx, err := r.DB.Begin(true)
 	if err != nil {
 		return items, err
@@ -82,6 +80,7 @@ func (r BoltRepository) listPhotos(album string) ([]*GooglePhoto, error) {
 
 	c := albumBucket.Cursor()
 	for k, v := c.First(); k != nil; k, v = c.Next() {
+		var photo GooglePhoto
 		if err = json.Unmarshal(v, &photo); err != nil {
 			logrus.WithError(err).WithField("album", album).Errorln("unmarshal bolt value error")
 			return items, err
