@@ -4,12 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 type googleApi struct {
@@ -36,7 +38,9 @@ var (
 // NewGoogleApi represent client for low-level requests to Google Photo Api.
 func NewGoogleApi() *googleApi {
 	return &googleApi{
-		client:         http.DefaultClient,
+		client: &http.Client{
+			Timeout: time.Second * 10,
+		},
 		getAlbumsURL:   "https://photoslibrary.googleapis.com/v1/albums",
 		searchPhotoURL: "https://photoslibrary.googleapis.com/v1/mediaItems:search",
 		getTokenURL:    "https://accounts.google.com/o/oauth2/token",

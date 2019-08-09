@@ -2,17 +2,21 @@ package gphoto
 
 import (
 	"errors"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewGoogleApi(t *testing.T) {
 
 	want := &googleApi{
-		client:         http.DefaultClient,
+		client: &http.Client{
+			Timeout: time.Second * 10,
+		},
 		getAlbumsURL:   "https://photoslibrary.googleapis.com/v1/albums",
 		searchPhotoURL: "https://photoslibrary.googleapis.com/v1/mediaItems:search",
 		getTokenURL:    "https://accounts.google.com/o/oauth2/token",
