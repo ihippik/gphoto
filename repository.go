@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
+
 	"github.com/sirupsen/logrus"
 	"go.etcd.io/bbolt"
-	"strconv"
 )
 
 const (

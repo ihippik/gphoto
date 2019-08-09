@@ -2,15 +2,16 @@ package gphoto
 
 import (
 	"errors"
+
 	"github.com/sirupsen/logrus"
 	bolt "go.etcd.io/bbolt"
-	"net/http"
 )
 
 type api interface {
 	refreshAccessToken(clientID, clientSecret, refreshToken string) (string, error)
 	getAlbumList(accessToken string) ([]*GoogleAlbum, error)
 	searchPhotos(accessToken, albumID string) ([]*GooglePhoto, error)
+	urlIsValid(url string) bool
 }
 
 type repository interface {
@@ -72,6 +73,7 @@ func (c *Client) GetAlbumList() ([]*GoogleAlbum, error) {
 		}
 	} else if err != nil {
 		logrus.WithError(err).Errorln(getAlbumErr)
+		return albums, getAlbumErr
 	}
 	return albums, err
 }
@@ -88,7 +90,8 @@ func (c *Client) GetPhotoByAlbum(albumID string) ([]*GooglePhoto, error) {
 	}()
 
 	photos, err = c.repo.listPhotos(albumID)
-	if err == nil && urlIsValid(photos[0].BaseURL) {
+	uiv := c.api.urlIsValid(photos[0].BaseURL)
+	if err == nil && uiv {
 		return photos, err
 	} else {
 		photos, err = c.api.searchPhotos(c.accessToken, albumID)
@@ -127,21 +130,4 @@ func (c *Client) GetPhotoByAlbum(albumID string) ([]*GooglePhoto, error) {
 // initDB init Bolt database connection.
 func initDB() (*bolt.DB, error) {
 	return bolt.Open(googlePhotoDB, 0600, nil)
-}
-
-// urlIsValid check the link to the photo still expired.
-func urlIsValid(url string) bool {
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return false
-	}
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return false
-	}
-	defer func() {
-		_ = res.Body.Close()
-	}()
-
-	return res.StatusCode == http.StatusOK
 }

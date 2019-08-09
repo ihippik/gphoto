@@ -2,11 +2,12 @@ package gphoto
 
 import (
 	"errors"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewGoogleApi(t *testing.T) {
@@ -17,6 +18,42 @@ func TestNewGoogleApi(t *testing.T) {
 	}
 	if got := NewGoogleApi(); !reflect.DeepEqual(got, want) {
 		t.Errorf("NewGoogleApi() = %v, want %v", got, want)
+	}
+}
+
+func Test_urlIsValid(t *testing.T) {
+	tests := []struct {
+		name       string
+		path       string
+		url        string
+		statusCode int
+		want       bool
+	}{
+		{
+			name:       "is valid",
+			url:        "/check",
+			statusCode: http.StatusOK,
+			want:       true,
+		},
+		{
+			name:       "invalid",
+			url:        "/check",
+			statusCode: http.StatusUnauthorized,
+			want:       false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+				rw.WriteHeader(tt.statusCode)
+				assert.Equal(t, req.URL.String(), tt.url)
+			}))
+			defer server.Close()
+			api := googleApi{client: server.Client(), searchPhotoURL: server.URL + tt.path}
+			if got := api.urlIsValid(server.URL + tt.url); got != tt.want {
+				t.Errorf("urlIsValid() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
 

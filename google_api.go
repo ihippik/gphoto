@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 type googleApi struct {
@@ -171,4 +172,21 @@ func (g *googleApi) searchPhotos(accessToken, albumID string) ([]*GooglePhoto, e
 	}
 	logrus.WithField("album", albumID).Debugln("search photo via api")
 	return googleResponse.GooglePhotos, err
+}
+
+// urlIsValid check the link to the photo still expired.
+func (g *googleApi) urlIsValid(url string) bool {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return false
+	}
+	res, err := g.client.Do(req)
+	if err != nil {
+		return false
+	}
+	defer func() {
+		_ = res.Body.Close()
+	}()
+
+	return res.StatusCode == http.StatusOK
 }
