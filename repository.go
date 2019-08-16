@@ -115,7 +115,7 @@ func (r BoltRepository) truncateAlbum(album string) error {
 }
 
 // NewBoltRepository make BoltRepository instance.
-func NewBoltRepository(DB *bbolt.DB) *BoltRepository {
+func NewBoltRepository(DB *bbolt.DB) (*BoltRepository, error) {
 	var err error
 	err = DB.Update(func(tx *bbolt.Tx) error {
 		_, err = tx.CreateBucketIfNotExists([]byte(photoBucket))
@@ -125,7 +125,8 @@ func NewBoltRepository(DB *bbolt.DB) *BoltRepository {
 		return nil
 	})
 	if err != nil {
-		logrus.Fatalln(err)
+		logrus.WithError(err).Errorln(createRepoErr)
+		return nil, createRepoErr
 	}
-	return &BoltRepository{DB: DB}
+	return &BoltRepository{DB: DB}, nil
 }
