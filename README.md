@@ -12,7 +12,7 @@ Photos received from Google Api are cached in the database (bolt db by default),
 ```go
 import 	"github.com/ihippik/gphoto"
 
-refreshToken := "REFRESH_TOKEN
+refreshToken := "REFRESH_TOKEN"
 clientID := "CLIENT_ID"
 clientSecret := "CLIENT_SECRET"
 client,err := gphoto.NewGoogleClient(clientID, clientSecret, refreshToken)
@@ -20,5 +20,3 @@ client,err := gphoto.NewGoogleClient(clientID, clientSecret, refreshToken)
 albums, err := client.GetAlbumList()
 photos, err:= client.GetPhotoByAlbum(albumID)
 ```
-
- 
