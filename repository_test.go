@@ -205,3 +205,39 @@ func Setup(t *testing.T) {
 		}
 	}()
 }
+
+func TestNewBoltRepository(t *testing.T) {
+
+	Setup(t)
+	tests := []struct {
+		name    string
+		want    *BoltRepository
+		wantErr bool
+	}{
+		{
+			name: "success",
+			want: &BoltRepository{
+				DB: db,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewBoltRepository(db)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewBoltRepository() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewBoltRepository() got = %v, want %v", got, tt.want)
+			}
+			db.View(func(tx *bbolt.Tx) error {
+				// Assume bucket exists and has keys
+				b := tx.Bucket([]byte(photoBucket))
+				assert.NotNil(t, b)
+				return nil
+			})
+		})
+	}
+}
