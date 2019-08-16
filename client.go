@@ -38,23 +38,26 @@ var (
 	getAlbumErr     = errors.New("get album error")
 	truncateErr     = errors.New("truncate album error")
 	saveErr         = errors.New("save album error")
+	initDbErr       = errors.New("bolt DB init error")
+	createRepoErr   = errors.New("create repository error")
 )
 
 // NewGoogleClient create google photo api Client.
-func NewGoogleClient(clientID, clientSecret, refreshToken string) *Client {
+func NewGoogleClient(clientID, clientSecret, refreshToken string) (*Client, error) {
 	db, err := initDB(googlePhotoDB)
 	if err != nil {
-		logrus.WithError(err).Fatalln("boltDB init error")
+		logrus.WithError(err).Errorln(initDbErr)
+		return nil, initDbErr
 	}
 
-	repo := NewBoltRepository(db)
+	repo, err := NewBoltRepository(db)
 	return &Client{
 		clientID:     clientID,
 		clientSecret: clientSecret,
 		refreshToken: refreshToken,
 		api:          NewGoogleApi(),
 		repo:         repo,
-	}
+	}, err
 }
 
 // GetAlbumList fetch all photo albums.
@@ -122,6 +125,11 @@ func (c *Client) GetPhotoByAlbum(albumID string) ([]*GooglePhoto, error) {
 	}
 
 	return photos, err
+}
+
+// Close DB repository connection.
+func (c *Client) Close() error {
+	return c.repo.close()
 }
 
 // initDB init Bolt database connection.
