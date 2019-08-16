@@ -124,6 +124,11 @@ func (c *Client) GetPhotoByAlbum(albumID string) ([]*GooglePhoto, error) {
 	return photos, err
 }
 
+// Close DB repository connection.
+func (c *Client) Close() error {
+	return c.repo.close()
+}
+
 // initDB init Bolt database connection.
 func initDB(dbName string) (*bolt.DB, error) {
 	logrus.Debugln("bolt db connection open")
