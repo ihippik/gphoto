@@ -6,7 +6,8 @@
 
 A simple client for receiving photos and albums via API Google Photos.
 
-Photos received from Google Api are cached in the database (bolt db by default), for the duration of the link itself (one hour).
+Photos received from Google Api are cached in the database (bolt db by default).
+The cache is updated as needed.
 
 ### Example
 ```go
